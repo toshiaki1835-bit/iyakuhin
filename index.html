@@ -84,8 +84,7 @@
 </div>
 
 <script>
-  // デプロイ後に発行された新しいURLに書き換えてください
-  const GAS_URL = "https://script.google.com/macros/s/【新しいデプロイID】/exec";
+  const GAS_URL = "https://script.google.com/macros/s/AKfycbzjv1YkTgHL5Tw5dFtgMer3J7wDLlXQHgAOUq0eguLmA_0rCA4Bvy8O_zYNbDRnN-iq/exec";
 
   let currentData = { operator: "", fillCount: "", drugName: "", instructions: "", rateResult: "" };
 
@@ -152,7 +151,8 @@
   // GASへ判定リクエスト
   function sendDetectReq(mode, code, b64) {
     fetch(GAS_URL, {
-      method: 'POST', body: JSON.stringify({ action: 'detect', mode: mode, scannedCode: code, imageBase64: b64 })
+      method: 'POST',
+      body: JSON.stringify({ action: 'detect', mode: mode, scannedCode: code, imageBase64: b64 })
     }).then(r => r.json()).then(res => {
       hideLoading();
       if (res.found) {
@@ -173,7 +173,10 @@
         });
         alert("薬品名が違います。\nもう一度やり直してください。");
       }
-    }).catch(err => { hideLoading(); alert("通信エラーが発生しました。\nもう一度やり直してください。"); });
+    }).catch(err => {
+      hideLoading();
+      alert("通信エラーが発生しました。\nもう一度やり直してください。");
+    });
   }
 
   // STEP2: 薬剤確認の回答
