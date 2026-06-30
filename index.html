@@ -39,8 +39,6 @@
     .final-msg { text-align: center; font-size: 18px; font-weight: bold; padding: 20px; border-radius: 8px; margin-top: 10px; }
     .msg-ok { background: #d4edda; color: #155724; border: 2px solid #28a745; }
     .msg-ng { background: #f8d7da; color: #721c24; border: 2px solid #dc3545; }
-
-    optgroup { font-weight: bold; color: #2c3e50; }
   </style>
 </head>
 <body>
@@ -57,20 +55,27 @@
     <label class="title">病棟</label>
     <select id="ward">
       <option value="">-- 病棟を選択してください --</option>
-      <optgroup label="本館 14階〜11階">
+
+      <optgroup label="━━ 本館 14階〜11階 ━━">
         <option value="14W">14W</option>
         <option value="13E">13E</option>
         <option value="13W">13W</option>
+        <option value="12E">12E</option>
+        <option value="12W">12W</option>
+        <option value="11E">11E</option>
+        <option value="11W">11W</option>
       </optgroup>
-      <optgroup label="本館 10階〜8階">
-        <option value="7N">7N</option>
-        <option value="7S">7S</option>
-        <option value="5N">5N</option>
-        <option value="5S">5S</option>
-        <option value="4N">4N</option>
-        <option value="4S">4S</option>
+
+      <optgroup label="━━ 本館 10階〜8階 ━━">
+        <option value="10E">10E</option>
+        <option value="10W">10W</option>
+        <option value="9E">9E</option>
+        <option value="9W">9W</option>
+        <option value="8E">8E</option>
+        <option value="8W">8W</option>
       </optgroup>
-      <optgroup label="本館 7階〜4階">
+
+      <optgroup label="━━ 本館 7階〜4階 ━━">
         <option value="7E">7E</option>
         <option value="7W">7W</option>
         <option value="救急病棟">救急病棟</option>
@@ -78,9 +83,19 @@
         <option value="MFICU">MFICU</option>
         <option value="小児科">小児科</option>
       </optgroup>
-      <optgroup label="西館">
-        <option value="2H">2H</option>
+
+      <optgroup label="━━ 東館 ━━">
+        <option value="4N">4N</option>
+        <option value="4S">4S</option>
+        <option value="5N">5N</option>
+        <option value="5S">5S</option>
+        <option value="7N">7N</option>
+        <option value="7S">7S</option>
+      </optgroup>
+
+      <optgroup label="━━ 西館 ━━">
         <option value="1H">1H</option>
+        <option value="2H">2H</option>
       </optgroup>
     </select>
 
@@ -135,7 +150,6 @@
   }
   function hideLoading() { document.getElementById('loadingSign').style.display = 'none'; }
 
-  // 画像圧縮関数（読取精度優先）
   function fileToResizedBase64(file, maxW) {
     return new Promise((resolve) => {
       let reader = new FileReader();
@@ -175,7 +189,6 @@
     return true;
   }
 
-  // AI画像判定
   document.getElementById('fileInput').addEventListener('change', async function(e) {
     if (!e.target.files.length || !validateInput()) return;
     showLoading("AIで薬剤を解析中...");
@@ -184,7 +197,6 @@
     e.target.value = "";
   });
 
-  // バーコード判定
   document.getElementById('verifyBtn').addEventListener('click', function() {
     if (!validateInput()) return;
     const code = document.getElementById('barcodeInput').value.trim();
@@ -193,7 +205,6 @@
     sendDetectReq("text", code, "");
   });
 
-  // GASへ判定リクエスト
   function sendDetectReq(mode, code, b64) {
     fetch(GAS_URL, {
       method: 'POST',
@@ -225,7 +236,6 @@
     });
   }
 
-  // STEP2: 薬剤確認の回答
   function answerDrugCheck(isOk) {
     if (!isOk) {
       fetch(GAS_URL, {
@@ -247,7 +257,6 @@
     }
   }
 
-  // STEP3: 速度確認の回答 → スプレッドシートへ記録
   function answerRateCheck(isOk) {
     currentData.rateResult = isOk ? "速度OK" : "速度NG (逸脱)";
     const msgBox = document.getElementById('resultMsg');
