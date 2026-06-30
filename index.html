@@ -103,21 +103,23 @@
   }
   function hideLoading() { document.getElementById('loadingSign').style.display = 'none'; }
 
-  // 匿名化アルゴリズム：ハイフン除去 → 数字反転 → ランダムなアルファベットを混入
-  function anonymizePatientId(rawId) {
-    let cleanId = rawId.replace(/-/g, "");
-    let reversed = cleanId.split("").reverse();
-    let alphabets = "abcdefghijklmnopqrstuvwxyz";
-    let anonymized = "";
-    
-    for (let i = 0; i < reversed.length; i++) {
-      anonymized += reversed[i];
-      // 約50%の確率でアルファベットを1文字挿入
-      if (Math.random() < 0.5) {
-        anonymized += alphabets[Math.floor(Math.random() * alphabets.length)];
-      }
-    }
-    return anonymized;
+  // 改善: SHA-256による一方向ハッシュ化
+  // 同一患者番号は常に同一ハッシュ値になるため、投与履歴を患者単位で追跡可能。
+  // 一方でハッシュから元の患者番号を復元することは事実上不可能。
+  async function anonymizePatientId(rawId) {
+    const cleanId = rawId.replace(/-/g, "");
+
+    // 院内ソルト（運用開始前に院内固有の値に変更すること。推測・辞書攻撃対策）
+    const salt = "ARRHYTHMIA_AUDIT_SALT_2026";
+
+    const encoder = new TextEncoder();
+    const data = encoder.encode(salt + cleanId);
+    const hashBuffer = await crypto.subtle.digest("SHA-256", data);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    const hashHex = hashArray.map(b => b.toString(16).padStart(2, "0")).join("");
+
+    // 先頭16文字に短縮（スプレッドシートでの可読性のため）
+    return hashHex.substring(0, 16);
   }
 
   // 画像圧縮関数
@@ -140,7 +142,8 @@
     });
   }
 
-  function validateInput() {
+  // 改善: 非同期化（ハッシュ計算がPromiseを返すため）
+  async function validateInput() {
     currentData.operator = document.getElementById('operator').value.trim();
     let rawPid = document.getElementById('patientIdRaw').value.trim();
     currentData.fillCount = document.getElementById('fillCount').value.trim();
@@ -157,23 +160,23 @@
       return false;
     }
 
-    // 形式が正しければ匿名化してセット
-    currentData.patientId = anonymizePatientId(rawPid);
+    // 形式が正しければハッシュ化してセット
+    currentData.patientId = await anonymizePatientId(rawPid);
     return true;
   }
 
-  // AI画像判定
+  // AI画像判定（改善: await追加）
   document.getElementById('fileInput').addEventListener('change', async function(e) {
-    if (!e.target.files.length || !validateInput()) return;
+    if (!e.target.files.length || !(await validateInput())) return;
     showLoading("AIで薬剤を解析中...");
     const b64 = await fileToResizedBase64(e.target.files[0], 600);
     sendDetectReq("image", "", b64);
     e.target.value = "";
   });
 
-  // バーコード判定
-  document.getElementById('verifyBtn').addEventListener('click', function() {
-    if (!validateInput()) return;
+  // バーコード判定（改善: async/await追加）
+  document.getElementById('verifyBtn').addEventListener('click', async function() {
+    if (!(await validateInput())) return;
     const code = document.getElementById('barcodeInput').value.trim();
     if (!code) { alert("バーコードを入力してください"); return; }
     showLoading("薬剤を検索中...");
@@ -197,7 +200,7 @@
           body: JSON.stringify({
             action: 'log',
             operator: currentData.operator,
-            patientId: currentData.patientId, // 匿名化された番号を送信
+            patientId: currentData.patientId, // ハッシュ化された番号を送信
             drugName: "【読取エラー】" + (res.rawCode || "不明なデータ"),
             fillCount: currentData.fillCount,
             rateResult: "対象薬剤が違います"
