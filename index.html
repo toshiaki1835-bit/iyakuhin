@@ -14,7 +14,11 @@
     .section.active { display: block; }
 
     label.title { display: block; font-weight: bold; margin-bottom: 6px; font-size: 14px; }
-    input[type="text"] { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; font-size: 15px; margin-bottom: 16px; }
+    input[type="text"], select {
+      width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px;
+      box-sizing: border-box; font-size: 15px; margin-bottom: 16px;
+      background: #fff;
+    }
 
     button { width: 100%; padding: 14px; border: none; border-radius: 8px; font-size: 16px; cursor: pointer; font-weight: bold; margin-bottom: 10px; }
     .btn-green { background: #27ae60; color: white; }
@@ -35,6 +39,8 @@
     .final-msg { text-align: center; font-size: 18px; font-weight: bold; padding: 20px; border-radius: 8px; margin-top: 10px; }
     .msg-ok { background: #d4edda; color: #155724; border: 2px solid #28a745; }
     .msg-ng { background: #f8d7da; color: #721c24; border: 2px solid #dc3545; }
+
+    optgroup { font-weight: bold; color: #2c3e50; }
   </style>
 </head>
 <body>
@@ -47,6 +53,36 @@
   <div id="step1" class="section active">
     <label class="title">作業者名</label>
     <input type="text" id="operator" placeholder="例：山田 太郎">
+
+    <label class="title">病棟</label>
+    <select id="ward">
+      <option value="">-- 病棟を選択してください --</option>
+      <optgroup label="本館 14階〜11階">
+        <option value="14W">14W</option>
+        <option value="13E">13E</option>
+        <option value="13W">13W</option>
+      </optgroup>
+      <optgroup label="本館 10階〜8階">
+        <option value="7N">7N</option>
+        <option value="7S">7S</option>
+        <option value="5N">5N</option>
+        <option value="5S">5S</option>
+        <option value="4N">4N</option>
+        <option value="4S">4S</option>
+      </optgroup>
+      <optgroup label="本館 7階〜4階">
+        <option value="7E">7E</option>
+        <option value="7W">7W</option>
+        <option value="救急病棟">救急病棟</option>
+        <option value="産科病棟">産科病棟</option>
+        <option value="MFICU">MFICU</option>
+        <option value="小児科">小児科</option>
+      </optgroup>
+      <optgroup label="西館">
+        <option value="2H">2H</option>
+        <option value="1H">1H</option>
+      </optgroup>
+    </select>
 
     <label class="title">本数</label>
     <input type="text" id="fillCount" inputmode="numeric" placeholder="例：3">
@@ -86,7 +122,7 @@
 <script>
   const GAS_URL = "https://script.google.com/macros/s/AKfycbwai3dpvVmQ3zThkvD4owMOLZxki21_nfB18e0zebaFtU-MJK2mdRgJfhE3U1pmWMEy/exec";
 
-  let currentData = { operator: "", fillCount: "", drugName: "", instructions: "", rateResult: "" };
+  let currentData = { operator: "", ward: "", fillCount: "", drugName: "", instructions: "", rateResult: "" };
 
   function showSection(id) {
     document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
@@ -121,10 +157,19 @@
 
   function validateInput() {
     currentData.operator = document.getElementById('operator').value.trim();
+    currentData.ward = document.getElementById('ward').value;
     currentData.fillCount = document.getElementById('fillCount').value.trim();
 
-    if (!currentData.operator || !currentData.fillCount) {
-      alert("作業者名と本数を入力してください。");
+    if (!currentData.operator) {
+      alert("作業者名を入力してください。");
+      return false;
+    }
+    if (!currentData.ward) {
+      alert("病棟を選択してください。");
+      return false;
+    }
+    if (!currentData.fillCount) {
+      alert("本数を入力してください。");
       return false;
     }
     return true;
@@ -166,6 +211,7 @@
           body: JSON.stringify({
             action: 'log',
             operator: currentData.operator,
+            ward: currentData.ward,
             drugName: "【読取エラー】" + (res.rawCode || "不明なデータ"),
             fillCount: currentData.fillCount,
             rateResult: "薬品名が違います"
@@ -187,6 +233,7 @@
         body: JSON.stringify({
           action: 'log',
           operator: currentData.operator,
+          ward: currentData.ward,
           drugName: currentData.drugName,
           fillCount: currentData.fillCount,
           rateResult: "作業者による取り消し（薬剤違い）"
@@ -221,6 +268,7 @@
       body: JSON.stringify({
         action: 'log',
         operator: currentData.operator,
+        ward: currentData.ward,
         drugName: currentData.drugName,
         fillCount: currentData.fillCount,
         rateResult: currentData.rateResult
@@ -229,6 +277,7 @@
   }
 
   function resetApp() {
+    document.getElementById('ward').value = "";
     document.getElementById('barcodeInput').value = "";
     document.getElementById('fillCount').value = "";
     showSection('step1');
