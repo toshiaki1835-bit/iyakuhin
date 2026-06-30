@@ -121,7 +121,6 @@
   }
 
   function validateInput() {
-    // .trim() を追加して、誤って入力された前後の空白を自動で削除します
     currentData.operator = document.getElementById('operator').value.trim();
     currentData.fillCount = document.getElementById('fillCount').value.trim();
     if (!currentData.operator || !currentData.fillCount) {
@@ -161,6 +160,18 @@
         document.getElementById('drugConfirmText').innerText = `「${res.drugName}」ですが、間違いありませんか？`;
         showSection('step2');
       } else {
+        // ★ 追加：対象外の薬剤（エラー）だった場合もスプレッドシートに記録を飛ばす
+        fetch(GAS_URL, {
+          method: 'POST', 
+          body: JSON.stringify({
+            action: 'log',
+            operator: currentData.operator,
+            drugName: "【読取エラー】" + (res.rawCode || "不明なデータ"),
+            fillCount: currentData.fillCount,
+            rateResult: "対象薬剤が違います"
+          })
+        });
+        
         alert("エラー: " + res.message + "\nもう一度やり直してください。");
       }
     }).catch(err => { hideLoading(); alert("通信エラーが発生しました。"); });
@@ -169,6 +180,18 @@
   // STEP2: 薬剤確認の回答
   function answerDrugCheck(isOk) {
     if (!isOk) {
+      // ★ 追加：作業者が「いいえ」を押して弾いた場合も記録を飛ばす
+      fetch(GAS_URL, {
+        method: 'POST', 
+        body: JSON.stringify({
+          action: 'log',
+          operator: currentData.operator,
+          drugName: currentData.drugName,
+          fillCount: currentData.fillCount,
+          rateResult: "作業者による取り消し（薬剤違い）"
+        })
+      });
+
       alert("医薬品が違っているため、再度認証してください。");
       resetApp();
     } else {
